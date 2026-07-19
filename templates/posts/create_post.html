@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Create Post | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="auth-container">
+
+    <div class="auth-card post-form-card">
+
+        <h1>Create post</h1>
+
+        <p class="auth-description">
+            Share text, photos, or videos.
+        </p>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="form-errors">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            {% for field in form %}
+
+                <div class="form-group">
+
+                    <label for="{{ field.id_for_label }}">
+                        {{ field.label }}
+                    </label>
+
+                    {{ field }}
+
+                    {% if field.help_text %}
+                        <div class="help-text">
+                            {{ field.help_text|safe }}
+                        </div>
+                    {% endif %}
+
+                    {% if field.errors %}
+                        <div class="field-errors">
+                            {{ field.errors }}
+                        </div>
+                    {% endif %}
+
+                </div>
+
+            {% endfor %}
+
+            <h3 class="form-section-title">
+                Post preview
+            </h3>
+
+            <div id="text-preview" class="post-text-preview"></div>
+
+            <div id="media-preview" class="media-preview-grid"></div>
+
+            <button type="submit" class="primary-button">
+                Publish post
+            </button>
+
+        </form>
+
+        <a href="{% url 'posts:feed' %}" class="cancel-link">
+            Cancel
+        </a>
+
+    </div>
+
+</div>
+
+<script>
+    const textInput = document.querySelector('textarea');
+    const textPreview = document.getElementById('text-preview');
+    const mediaInput = document.querySelector('input[type="file"]');
+    const mediaPreview = document.getElementById('media-preview');
+
+    if (textInput) {
+        textInput.addEventListener('input', function() {
+            textPreview.textContent = this.value;
+        });
+    }
+
+    if (mediaInput) {
+        mediaInput.addEventListener('change', function() {
+            mediaPreview.innerHTML = '';
+
+            const files = Array.from(this.files);
+
+            files.forEach(file => {
+                const previewItem = document.createElement('div');
+                previewItem.classList.add('media-preview-item');
+
+                const fileUrl = URL.createObjectURL(file);
+
+                if (file.type.startsWith('image/')) {
+                    const image = document.createElement('img');
+                    image.src = fileUrl;
+                    previewItem.appendChild(image);
+                }
+
+                if (file.type.startsWith('video/')) {
+                    const video = document.createElement('video');
+                    video.src = fileUrl;
+                    video.controls = true;
+                    previewItem.appendChild(video);
+                }
+
+                mediaPreview.appendChild(previewItem);
+            });
+        });
+    }
+</script>
+
+{% endblock %}

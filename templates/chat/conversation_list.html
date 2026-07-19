@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Messages | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="chat-list-container">
+
+    <div class="chat-list-header">
+
+        <div>
+            <h1>Messages</h1>
+
+            <p>
+                Your private and group conversations.
+            </p>
+        </div>
+
+        <a href="{% url 'chat:create_group' %}" class="primary-small-button">
+            Create group
+        </a>
+
+    </div>
+
+    <div class="conversation-list">
+
+        {% for conversation in conversations %}
+
+            <a
+                href="{% url 'chat:conversation_detail' conversation.id %}"
+                class="conversation-card {% if conversation.unread_count > 0 %}conversation-card-unread{% endif %}"
+            >
+
+                <div class="conversation-avatar">
+
+                    {% if conversation.conversation_type == 'group' %}
+
+                        {% if conversation.image %}
+
+                            <img
+                                src="{{ conversation.image.url }}"
+                                alt="Group image"
+                            >
+
+                        {% else %}
+
+                            <div class="conversation-default-avatar">
+                                {{ conversation.name|first|upper }}
+                            </div>
+
+                        {% endif %}
+
+                    {% else %}
+
+                        {% if conversation.other_user.profile.avatar %}
+
+                            <img
+                                src="{{ conversation.other_user.profile.avatar.url }}"
+                                alt="Avatar"
+                            >
+
+                        {% else %}
+
+                            <div class="conversation-default-avatar">
+                                {{ conversation.other_user.first_name|first|upper }}
+                            </div>
+
+                        {% endif %}
+
+                    {% endif %}
+
+                </div>
+
+                <div class="conversation-information">
+
+                    <div class="conversation-name">
+
+                        {% if conversation.conversation_type == 'group' %}
+
+                            {{ conversation.name }}
+
+                        {% else %}
+
+                            {{ conversation.other_user.first_name }}
+                            {{ conversation.other_user.last_name }}
+
+                        {% endif %}
+
+                    </div>
+
+                    {% if conversation.conversation_type == 'private' %}
+
+                        <div class="conversation-user-status">
+
+                            {% if conversation.other_user.is_online %}
+
+                                <span class="online-status-dot"></span>
+
+                                <span class="online-status-text">
+                                    Online
+                                </span>
+
+                            {% else %}
+
+                                <span class="offline-status-dot"></span>
+
+                                <span class="offline-status-text">
+                                    Last seen
+                                    {{ conversation.other_user.last_activity|timesince }}
+                                    ago
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+                    {% else %}
+
+                        <div class="conversation-user-status">
+
+                            <span class="group-status-text">
+                                {{ conversation.participants.count }}
+                                participants
+                            </span>
+
+                        </div>
+
+                    {% endif %}
+
+                    <div class="conversation-preview">
+
+                        {% with last_message=conversation.messages.last %}
+
+                            {% if last_message %}
+
+                                {% if last_message.sender == request.user %}
+                                    You:
+                                {% else %}
+                                    {{ last_message.sender.first_name }}:
+                                {% endif %}
+
+                                {% if last_message.text %}
+
+                                    {{ last_message.text|truncatechars:55 }}
+
+                                {% elif last_message.image %}
+
+                                    Sent an image
+
+                                {% elif last_message.video %}
+
+                                    Sent a video
+
+                                {% elif last_message.file %}
+
+                                    Sent a file
+
+                                {% endif %}
+
+                            {% else %}
+
+                                No messages yet
+
+                            {% endif %}
+
+                        {% endwith %}
+
+                    </div>
+
+                </div>
+
+                <div class="conversation-right-side">
+
+                    <div class="conversation-time">
+
+                        {% with last_message=conversation.messages.last %}
+
+                            {% if last_message %}
+                                {{ last_message.created_at|date:"H:i" }}
+                            {% endif %}
+
+                        {% endwith %}
+
+                    </div>
+
+                    {% if conversation.unread_count > 0 %}
+
+                        <div class="conversation-new-message-label">
+
+                            {% if conversation.unread_count == 1 %}
+                                New message
+                            {% else %}
+                                New messages
+                            {% endif %}
+
+                        </div>
+
+                        <div class="conversation-unread-count">
+                            {{ conversation.unread_count }}
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            </a>
+
+        {% empty %}
+
+            <div class="empty-card">
+
+                <h2>No conversations yet</h2>
+
+                <p>
+                    Open a friend's profile and start a conversation.
+                </p>
+
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+<script>
+    (function() {
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const socketUrl = protocol + '://' + window.location.host + '/ws/chat/inbox/';
+        let inboxSocket = null;
+        let reloadTimeout = null;
+
+        function connectInboxSocket() {
+            inboxSocket = new WebSocket(socketUrl);
+
+            inboxSocket.onmessage = function(event) {
+                let data;
+
+                try {
+                    data = JSON.parse(event.data);
+                } catch (error) {
+                    return;
+                }
+
+                if (data.type !== 'conversation_updated') return;
+
+                if (reloadTimeout) clearTimeout(reloadTimeout);
+                reloadTimeout = setTimeout(function() {
+                    window.location.reload();
+                }, 250);
+            };
+
+            inboxSocket.onclose = function() {
+                setTimeout(connectInboxSocket, 2000);
+            };
+        }
+
+        connectInboxSocket();
+    })();
+</script>
+
+
+{% endblock %}
+

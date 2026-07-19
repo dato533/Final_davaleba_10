@@ -1,0 +1,261 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {% block title %}
+            ConnectHub
+        {% endblock %}
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'css/style.css' %}"
+    >
+</head>
+
+<body>
+
+<nav class="navbar">
+
+    <div class="navbar-container">
+
+        <a href="{% url 'posts:feed' %}" class="logo">
+            ConnectHub
+        </a>
+
+        {% if request.user.is_authenticated %}
+
+            <div class="nav-main-links">
+
+                <a href="{% url 'posts:feed' %}" class="nav-pill">
+                    Feed
+                </a>
+
+                <a href="{% url 'posts:create_post' %}" class="nav-pill">
+                    Create Post
+                </a>
+
+                <a href="{% url 'users:friends_list' %}" class="nav-pill">
+                    Friends
+                </a>
+
+                <a href="{% url 'users:friend_requests' %}" class="nav-pill">
+                    Requests
+                </a>
+
+                <a href="{% url 'users:user_search' %}" class="nav-pill">
+                    Find People
+                </a>
+
+                <a href="{% url 'chat:conversation_list' %}" class="nav-pill notification-link">
+                    Messages
+
+                    {% if unread_messages_count > 0 %}
+                        <span class="notification-badge">
+                            {{ unread_messages_count }}
+                        </span>
+                    {% endif %}
+                </a>
+
+                <a href="{% url 'users:profile_detail' request.user.id %}" class="nav-pill">
+                    Profile
+                </a>
+
+                <a href="{% url 'users:change_password' %}" class="nav-pill">
+                    Change Password
+                </a>
+
+                <a href="{% url 'users:notification_list' %}" class="nav-pill notification-link">
+                    Notifications
+
+                    {% if unread_notifications_count > 0 %}
+                        <span class="notification-badge">
+                            {{ unread_notifications_count }}
+                        </span>
+                    {% endif %}
+                </a>
+
+            </div>
+
+            <form method="post" action="{% url 'users:logout' %}" class="logout-form">
+                {% csrf_token %}
+
+                <button type="submit" class="logout-button">
+                    Logout
+                </button>
+            </form>
+
+        {% else %}
+
+            <div class="nav-main-links guest-links">
+
+                <a href="{% url 'users:login' %}" class="nav-pill">
+                    Login
+                </a>
+
+                <a href="{% url 'users:register' %}" class="nav-pill">
+                    Register
+                </a>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</nav>
+
+<main class="main-container">
+
+    {% if messages %}
+        <div class="messages-container">
+
+            {% for message in messages %}
+
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+
+            {% endfor %}
+
+        </div>
+    {% endif %}
+
+    {% block content %}
+    {% endblock %}
+
+</main>
+
+<div id="gallery-modal" class="gallery-modal">
+
+    <button class="gallery-close" onclick="closeGallery()">
+        ×
+    </button>
+
+    <button class="gallery-arrow gallery-previous" onclick="previousGalleryItem()">
+        ‹
+    </button>
+
+    <div id="gallery-content" class="gallery-content"></div>
+
+    <button class="gallery-arrow gallery-next" onclick="nextGalleryItem()">
+        ›
+    </button>
+
+    <div id="gallery-counter" class="gallery-counter"></div>
+
+</div>
+
+<script>
+    let galleryItems = [];
+    let currentGalleryIndex = 0;
+
+    function openGallery(postId, startIndex) {
+        const galleryData = document.getElementById(`gallery-data-${postId}`);
+        const elements = galleryData.querySelectorAll('span');
+
+        galleryItems = Array.from(elements).map(element => {
+            return {
+                url: element.dataset.url,
+                type: element.dataset.type
+            };
+        });
+
+        currentGalleryIndex = startIndex;
+
+        document.getElementById('gallery-modal').classList.add('gallery-visible');
+        document.body.classList.add('no-scroll');
+
+        showGalleryItem();
+    }
+
+    function showGalleryItem() {
+        const galleryContent = document.getElementById('gallery-content');
+        const galleryCounter = document.getElementById('gallery-counter');
+        const item = galleryItems[currentGalleryIndex];
+
+        galleryContent.innerHTML = '';
+
+        if (item.type === 'image') {
+            const image = document.createElement('img');
+            image.src = item.url;
+            image.alt = 'Gallery image';
+            galleryContent.appendChild(image);
+        } else {
+            const video = document.createElement('video');
+            video.src = item.url;
+            video.controls = true;
+            video.autoplay = true;
+            galleryContent.appendChild(video);
+        }
+
+        galleryCounter.textContent = `${currentGalleryIndex + 1} / ${galleryItems.length}`;
+    }
+
+    function previousGalleryItem() {
+        currentGalleryIndex--;
+
+        if (currentGalleryIndex < 0) {
+            currentGalleryIndex = galleryItems.length - 1;
+        }
+
+        showGalleryItem();
+    }
+
+    function nextGalleryItem() {
+        currentGalleryIndex++;
+
+        if (currentGalleryIndex >= galleryItems.length) {
+            currentGalleryIndex = 0;
+        }
+
+        showGalleryItem();
+    }
+
+    function closeGallery() {
+        const galleryContent = document.getElementById('gallery-content');
+
+        galleryContent.innerHTML = '';
+
+        document.getElementById('gallery-modal').classList.remove('gallery-visible');
+        document.body.classList.remove('no-scroll');
+    }
+
+    document.addEventListener('keydown', function(event) {
+        const galleryModal = document.getElementById('gallery-modal');
+
+        if (!galleryModal.classList.contains('gallery-visible')) {
+            return;
+        }
+
+        if (event.key === 'Escape') {
+            closeGallery();
+        }
+
+        if (event.key === 'ArrowLeft') {
+            previousGalleryItem();
+        }
+
+        if (event.key === 'ArrowRight') {
+            nextGalleryItem();
+        }
+    });
+
+    document.getElementById('gallery-modal').addEventListener('click', function(event) {
+        if (event.target === this) {
+            closeGallery();
+        }
+    });
+</script>
+
+</body>
+</html>

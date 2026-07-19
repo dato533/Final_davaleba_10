@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Share Post | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="auth-container">
+
+    <div class="auth-card post-form-card">
+
+        <h1>Share post</h1>
+
+        <p class="auth-description">
+            Add your own comment before sharing.
+        </p>
+
+        <div class="shared-post-preview">
+
+            <div class="shared-post-author">
+                {{ original_post.author.first_name }}
+                {{ original_post.author.last_name }}
+            </div>
+
+            {% if original_post.text %}
+                <p class="shared-post-text">
+                    {{ original_post.text|linebreaksbr }}
+                </p>
+            {% endif %}
+
+            {% include 'posts/includes/post_media_grid.html' with post=original_post editable=False %}
+
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+
+                <label for="{{ form.text.id_for_label }}">
+                    Your comment
+                </label>
+
+                {{ form.text }}
+
+                {% if form.text.errors %}
+                    <div class="field-errors">
+                        {{ form.text.errors }}
+                    </div>
+                {% endif %}
+
+            </div>
+
+            <button type="submit" class="primary-button">
+                Share post
+            </button>
+
+        </form>
+
+        <a href="{% url 'posts:post_detail' original_post.id %}" class="cancel-link">
+            Cancel
+        </a>
+
+    </div>
+
+</div>
+
+{% endblock %}

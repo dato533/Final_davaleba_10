@@ -1,0 +1,817 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Chat | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="chat-page">
+
+    <div class="chat-header">
+
+        <div class="chat-header-user">
+
+            {% if conversation.conversation_type == 'group' %}
+
+                {% if conversation.image %}
+                    <img src="{{ conversation.image.url }}" alt="Group image" class="chat-header-avatar">
+                {% else %}
+                    <div class="chat-header-default-avatar">
+                        {{ conversation.name|first|upper }}
+                    </div>
+                {% endif %}
+
+                <div>
+                    <h2>{{ conversation.name }}</h2>
+                    <p>{{ conversation.participants.count }} participants</p>
+                </div>
+
+            {% else %}
+
+                {% if other_user.profile.avatar %}
+                    <img src="{{ other_user.profile.avatar.url }}" alt="Avatar" class="chat-header-avatar">
+                {% else %}
+                    <div class="chat-header-default-avatar">
+                        {{ other_user.first_name|first|upper }}
+                    </div>
+                {% endif %}
+
+                <div>
+                    <h2>
+                        {{ other_user.first_name }}
+                        {{ other_user.last_name }}
+                    </h2>
+
+                    <div class="chat-user-status">
+
+                        {% if other_user.is_online %}
+
+                            <span class="online-status-dot"></span>
+
+                            <span class="online-status-text">
+                                Online
+                            </span>
+
+                        {% else %}
+
+                            <span class="offline-status-dot"></span>
+
+                            <span class="offline-status-text">
+                                Last seen {{ other_user.last_activity|timesince }} ago
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+                </div>
+
+            {% endif %}
+
+        </div>
+
+        <div class="chat-header-actions">
+
+            {% if conversation.conversation_type == 'group' %}
+
+                <form method="post" action="{% url 'chat:leave_group' conversation.id %}">
+                    {% csrf_token %}
+
+                    <button
+                        type="submit"
+                        class="danger-small-button"
+                        onclick="return confirm('Are you sure you want to leave this group?')"
+                    >
+                        Leave group
+                    </button>
+                </form>
+
+            {% endif %}
+
+            <a href="{% url 'chat:conversation_list' %}" class="secondary-button">
+                Back
+            </a>
+
+        </div>
+
+    </div>
+
+    {% if conversation.conversation_type == 'group' and conversation.created_by == request.user %}
+
+        <div class="group-management">
+
+            <h3>Group members</h3>
+
+            <div class="group-members">
+
+                {% for participant in conversation.participants.all %}
+
+                    <div class="group-member">
+
+                        <span>
+                            {{ participant.first_name }}
+                            {{ participant.last_name }}
+                        </span>
+
+                        {% if participant != request.user %}
+
+                            <form method="post" action="{% url 'chat:remove_group_member' conversation.id participant.id %}">
+                                {% csrf_token %}
+
+                                <button type="submit" class="comment-delete-button">
+                                    Remove
+                                </button>
+                            </form>
+
+                        {% endif %}
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+            <form method="post" action="{% url 'chat:add_group_member' conversation.id %}" class="group-add-form">
+                {% csrf_token %}
+
+                <select name="user_id" class="form-control">
+
+                    <option value="">
+                        Select a friend
+                    </option>
+
+                    {% for friend in request.user.get_friends %}
+
+                        {% if friend not in conversation.participants.all %}
+
+                            <option value="{{ friend.id }}">
+                                {{ friend.first_name }} {{ friend.last_name }}
+                            </option>
+
+                        {% endif %}
+
+                    {% endfor %}
+
+                </select>
+
+                <button type="submit" class="primary-small-button">
+                    Add member
+                </button>
+
+            </form>
+
+        </div>
+
+    {% endif %}
+
+    <div id="messages-container" class="messages-chat-container">
+
+        {% if has_older_messages %}
+            <button
+                type="button"
+                id="load-older-messages"
+                class="load-older-messages-button"
+                data-before-id="{{ oldest_message_id }}"
+            >
+                Load older messages
+            </button>
+        {% endif %}
+
+        <div id="messages-list">
+            {% for message in chat_messages %}
+                {% include 'chat/includes/message_item.html' %}
+            {% empty %}
+                <div id="empty-chat-message" class="empty-chat">
+                    No messages yet. Start the conversation.
+                </div>
+            {% endfor %}
+        </div>
+
+        <div id="typing-indicator" class="typing-indicator">
+            <span id="typing-indicator-text"></span>
+        </div>
+
+    </div>
+
+    <div class="message-form-wrapper">
+
+        <form method="post" enctype="multipart/form-data" class="message-form">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+
+                <div class="form-errors message-form-errors">
+                    {{ form.non_field_errors }}
+                </div>
+
+            {% endif %}
+
+            <div id="websocket-error" class="form-errors message-form-errors" style="display: none;"></div>
+
+            <div id="message-attachment-preview" class="message-attachment-preview"></div>
+
+            <div class="message-compose-row">
+
+                <div class="message-attachments">
+
+                    <label class="attachment-icon-button" title="Add photo">
+                        <span aria-hidden="true">&#128247;</span>
+                        {{ form.image }}
+                    </label>
+
+                    <label class="attachment-icon-button" title="Add video">
+                        <span aria-hidden="true">&#127909;</span>
+                        {{ form.video }}
+                    </label>
+
+                    <label class="attachment-icon-button" title="Add file">
+                        <span aria-hidden="true">&#128206;</span>
+                        {{ form.file }}
+                    </label>
+
+                </div>
+
+                <div class="message-main-input">
+                    {{ form.text }}
+                </div>
+
+                <button type="submit" class="message-send-button">
+                    Send
+                </button>
+
+            </div>
+
+            {% if form.text.errors %}
+
+                <div class="field-errors">
+                    {{ form.text.errors }}
+                </div>
+
+            {% endif %}
+
+            {% if form.image.errors %}
+
+                <div class="field-errors">
+                    {{ form.image.errors }}
+                </div>
+
+            {% endif %}
+
+            {% if form.video.errors %}
+
+                <div class="field-errors">
+                    {{ form.video.errors }}
+                </div>
+
+            {% endif %}
+
+            {% if form.file.errors %}
+
+                <div class="field-errors">
+                    {{ form.file.errors }}
+                </div>
+
+            {% endif %}
+
+        </form>
+
+    </div>
+
+</div>
+
+<script>
+    const conversationId = Number('{{ conversation.id }}');
+    const currentUserId = Number('{{ request.user.id }}');
+    const conversationType = '{{ conversation.conversation_type }}';
+    const olderMessagesUrl = '{% url "chat:load_older_messages" conversation.id %}';
+
+    const messagesContainer = document.getElementById('messages-container');
+    const messagesList = document.getElementById('messages-list');
+    const messageInput = document.querySelector('.message-input');
+    const messageForm = document.querySelector('.message-form');
+    const imageInput = document.getElementById('{{ form.image.id_for_label }}');
+    const videoInput = document.getElementById('{{ form.video.id_for_label }}');
+    const fileInput = document.getElementById('{{ form.file.id_for_label }}');
+    const attachmentPreview = document.getElementById('message-attachment-preview');
+    const websocketError = document.getElementById('websocket-error');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const typingIndicatorText = document.getElementById('typing-indicator-text');
+    const loadOlderButton = document.getElementById('load-older-messages');
+
+    const typingUsers = new Map();
+    let chatSocket = null;
+    let reconnectTimeout = null;
+    let typingTimeout = null;
+    let typingWasSent = false;
+    let manualFormSubmit = false;
+    let loadingOlderMessages = false;
+
+    const websocketProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const websocketUrl = websocketProtocol + '://' + window.location.host + '/ws/chat/' + conversationId + '/';
+
+    function scrollMessagesToBottom() {
+        if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    }
+
+    function showWebSocketError(message) {
+        if (!websocketError) return;
+        websocketError.textContent = message;
+        websocketError.style.display = 'block';
+    }
+
+    function hideWebSocketError() {
+        if (!websocketError) return;
+        websocketError.textContent = '';
+        websocketError.style.display = 'none';
+    }
+
+    function updateTypingIndicator() {
+        if (!typingIndicator || !typingIndicatorText) return;
+        const names = Array.from(typingUsers.values());
+
+        if (!names.length) {
+            typingIndicator.style.display = 'none';
+            typingIndicatorText.textContent = '';
+            return;
+        }
+
+        typingIndicatorText.textContent = names.length === 1 ? names[0] + ' is typing' : 'Several people are typing';
+        typingIndicator.style.display = 'block';
+        scrollMessagesToBottom();
+    }
+
+    function sendSocketData(data) {
+        if (!chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+            showWebSocketError('Real-time connection is unavailable.');
+            return false;
+        }
+
+        chatSocket.send(JSON.stringify(data));
+        return true;
+    }
+
+    function sendMarkRead() {
+        if (document.visibilityState !== 'visible' || !document.hasFocus()) return;
+        sendSocketData({type: 'mark_read'});
+    }
+
+    function markMessagesAsRead(messageIds) {
+        if (!Array.isArray(messageIds)) return;
+
+        messageIds.forEach(function(messageId) {
+            const status = document.querySelector('.message-read-status[data-message-id="' + messageId + '"]');
+            if (status) status.textContent = '✓✓';
+        });
+    }
+
+    function connectWebSocket() {
+        if (chatSocket && (chatSocket.readyState === WebSocket.OPEN || chatSocket.readyState === WebSocket.CONNECTING)) return;
+
+        chatSocket = new WebSocket(websocketUrl);
+
+        chatSocket.onopen = function() {
+            hideWebSocketError();
+            if (reconnectTimeout) clearTimeout(reconnectTimeout);
+            reconnectTimeout = null;
+            sendMarkRead();
+        };
+
+        chatSocket.onmessage = function(event) {
+            let data;
+
+            try {
+                data = JSON.parse(event.data);
+            } catch (error) {
+                showWebSocketError('The received message is invalid.');
+                return;
+            }
+
+            if (data.type === 'error') {
+                showWebSocketError(data.message);
+            } else if (data.type === 'typing') {
+                const senderId = Number(data.sender_id);
+                if (senderId !== currentUserId) {
+                    data.is_typing ? typingUsers.set(senderId, data.sender_name) : typingUsers.delete(senderId);
+                    updateTypingIndicator();
+                }
+            } else if (data.type === 'messages_read') {
+                markMessagesAsRead(data.message_ids);
+            } else if (data.type === 'message_deleted') {
+                removeMessageFromPage(data.message_id);
+            } else if (data.type === 'message_edited') {
+                updateEditedMessage(data);
+            } else if (data.type === 'chat_message') {
+                typingUsers.delete(Number(data.sender_id));
+                updateTypingIndicator();
+                appendMessage(data);
+                if (Number(data.sender_id) !== currentUserId) sendMarkRead();
+            }
+        };
+
+        chatSocket.onerror = function() {
+            showWebSocketError('Real-time connection error. Attachments can still be sent normally.');
+        };
+
+        chatSocket.onclose = function() {
+            chatSocket = null;
+            showWebSocketError('Real-time connection was lost. Reconnecting...');
+            if (reconnectTimeout) clearTimeout(reconnectTimeout);
+            reconnectTimeout = setTimeout(connectWebSocket, 2000);
+        };
+    }
+
+    function showEmptyChatMessage() {
+        if (!messagesList || messagesList.querySelector('[data-message-row-id]')) return;
+        if (document.getElementById('empty-chat-message')) return;
+
+        const empty = document.createElement('div');
+        empty.id = 'empty-chat-message';
+        empty.className = 'empty-chat';
+        empty.textContent = 'No messages yet. Start the conversation.';
+        messagesList.appendChild(empty);
+    }
+
+    function removeMessageFromPage(messageId) {
+        const row = document.querySelector('[data-message-row-id="' + messageId + '"]');
+        if (row) row.remove();
+        showEmptyChatMessage();
+    }
+
+    function deleteMessage(messageId) {
+        if (!window.confirm('Delete this message for everyone?')) return;
+        sendSocketData({type: 'delete_message', message_id: Number(messageId)});
+    }
+
+    function editMessage(button) {
+        const messageId = Number(button.dataset.editMessageId);
+        const oldText = button.dataset.messageText || '';
+        const newText = window.prompt('Edit message text:', oldText);
+
+        if (newText === null || newText === oldText) return;
+        sendSocketData({type: 'edit_message', message_id: messageId, message: newText});
+    }
+
+    function updateEditedMessage(data) {
+        const content = document.querySelector('[data-message-content-id="' + data.message_id + '"]');
+        if (!content) return;
+
+        content.innerHTML = '';
+        if (data.message) content.appendChild(createMessageText(data.message));
+
+        const editButton = document.querySelector('[data-edit-message-id="' + data.message_id + '"]');
+        if (editButton) editButton.dataset.messageText = data.message || '';
+
+        const editedLabel = document.querySelector('[data-edited-label-id="' + data.message_id + '"]');
+        if (editedLabel) editedLabel.style.display = 'inline';
+    }
+
+    function createMessageText(text) {
+        const paragraph = document.createElement('p');
+        paragraph.className = 'message-text';
+        String(text).split('\n').forEach(function(line, index, lines) {
+            paragraph.appendChild(document.createTextNode(line));
+            if (index < lines.length - 1) paragraph.appendChild(document.createElement('br'));
+        });
+        return paragraph;
+    }
+
+    function createAvatar(name, avatarUrl) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'message-sender-avatar';
+
+        if (avatarUrl) {
+            const image = document.createElement('img');
+            image.src = avatarUrl;
+            image.alt = 'Avatar';
+            wrapper.appendChild(image);
+        } else {
+            const fallback = document.createElement('div');
+            fallback.className = 'message-default-avatar';
+            fallback.textContent = String(name || '?').trim().charAt(0).toUpperCase() || '?';
+            wrapper.appendChild(fallback);
+        }
+
+        return wrapper;
+    }
+
+    function createActionButton(className, title, messageId, text) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = className;
+        button.title = title;
+        button.setAttribute('aria-label', title);
+        button.textContent = text;
+
+        if (className === 'message-edit-button') {
+            button.dataset.editMessageId = messageId;
+        } else {
+            button.dataset.deleteMessageId = messageId;
+        }
+
+        return button;
+    }
+
+    function appendMessage(data) {
+        if (!messagesList || document.querySelector('[data-message-row-id="' + data.message_id + '"]')) return;
+
+        const empty = document.getElementById('empty-chat-message');
+        if (empty) empty.remove();
+
+        const isCurrentUser = Number(data.sender_id) === currentUserId;
+        const row = document.createElement('div');
+        row.className = 'message-row ' + (isCurrentUser ? 'message-row-right' : 'message-row-left');
+        row.dataset.messageRowId = data.message_id;
+
+        if (!isCurrentUser) row.appendChild(createAvatar(data.sender_name, data.sender_avatar));
+
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble ' + (isCurrentUser ? 'message-bubble-right' : 'message-bubble-left');
+
+        if (conversationType === 'group' && !isCurrentUser) {
+            const sender = document.createElement('div');
+            sender.className = 'message-sender-name';
+            sender.textContent = data.sender_name;
+            bubble.appendChild(sender);
+        }
+
+        const content = document.createElement('div');
+        content.className = 'message-content';
+        content.dataset.messageContentId = data.message_id;
+        if (data.message) content.appendChild(createMessageText(data.message));
+        bubble.appendChild(content);
+
+        if (data.image_url) {
+            const link = document.createElement('a');
+            link.href = data.image_url;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            const image = document.createElement('img');
+            image.src = data.image_url;
+            image.alt = 'Message image';
+            image.className = 'message-image';
+            link.appendChild(image);
+            bubble.appendChild(link);
+        }
+
+        if (data.video_url) {
+            const video = document.createElement('video');
+            video.controls = true;
+            video.preload = 'metadata';
+            video.className = 'message-video';
+            video.src = data.video_url;
+            bubble.appendChild(video);
+        }
+
+        if (data.file_url) {
+            const fileLink = document.createElement('a');
+            fileLink.href = data.file_url;
+            fileLink.download = '';
+            fileLink.className = 'message-file';
+            fileLink.textContent = data.file_name || 'Download file';
+            bubble.appendChild(fileLink);
+        }
+
+        if (isCurrentUser) {
+            const actions = document.createElement('div');
+            actions.className = 'message-actions';
+            const editButton = createActionButton('message-edit-button', 'Edit message', data.message_id, '✎');
+            editButton.dataset.messageText = data.message || '';
+            actions.appendChild(editButton);
+            actions.appendChild(createActionButton('message-delete-button', 'Delete message', data.message_id, '×'));
+            bubble.appendChild(actions);
+        }
+
+        const time = document.createElement('div');
+        time.className = 'message-time';
+        time.appendChild(document.createTextNode(data.created_at || ''));
+
+        const edited = document.createElement('span');
+        edited.className = 'message-edited-label';
+        edited.dataset.editedLabelId = data.message_id;
+        edited.textContent = 'edited';
+        edited.style.display = data.is_edited ? 'inline' : 'none';
+        time.appendChild(document.createTextNode(' '));
+        time.appendChild(edited);
+
+        if (isCurrentUser) {
+            const status = document.createElement('span');
+            status.className = 'message-read-status';
+            status.dataset.messageId = data.message_id;
+            status.textContent = data.is_read ? '✓✓' : '✓';
+            time.appendChild(document.createTextNode(' '));
+            time.appendChild(status);
+        }
+
+        bubble.appendChild(time);
+        row.appendChild(bubble);
+        messagesList.appendChild(row);
+        scrollMessagesToBottom();
+    }
+
+    async function loadOlderMessages() {
+        if (!loadOlderButton || loadingOlderMessages) return;
+
+        const beforeId = loadOlderButton.dataset.beforeId;
+        if (!beforeId) return;
+
+        loadingOlderMessages = true;
+        loadOlderButton.disabled = true;
+        loadOlderButton.textContent = 'Loading...';
+        const oldHeight = messagesContainer.scrollHeight;
+
+        try {
+            const response = await fetch(olderMessagesUrl + '?before=' + encodeURIComponent(beforeId), {
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            });
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error || 'Could not load older messages.');
+
+            messagesList.insertAdjacentHTML('afterbegin', data.html);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight - oldHeight;
+
+            if (data.has_more && data.next_before) {
+                loadOlderButton.dataset.beforeId = data.next_before;
+                loadOlderButton.disabled = false;
+                loadOlderButton.textContent = 'Load older messages';
+            } else {
+                loadOlderButton.remove();
+            }
+        } catch (error) {
+            showWebSocketError(error.message);
+            loadOlderButton.disabled = false;
+            loadOlderButton.textContent = 'Load older messages';
+        } finally {
+            loadingOlderMessages = false;
+        }
+    }
+
+    function hasAttachment() {
+        return Boolean(
+            (imageInput && imageInput.files.length) ||
+            (videoInput && videoInput.files.length) ||
+            (fileInput && fileInput.files.length)
+        );
+    }
+
+    function hasText() {
+        return Boolean(messageInput && messageInput.value.trim());
+    }
+
+    function stopTyping() {
+        if (typingTimeout) clearTimeout(typingTimeout);
+        typingTimeout = null;
+        if (typingWasSent) sendSocketData({type: 'typing', is_typing: false});
+        typingWasSent = false;
+    }
+
+    function sendTextMessage() {
+        if (!hasText() || !sendSocketData({type: 'chat_message', message: messageInput.value.trim()})) return false;
+        stopTyping();
+        messageInput.value = '';
+        messageInput.focus();
+        hideWebSocketError();
+        return true;
+    }
+
+    function createRemoveButton(input) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'remove-selected-attachment';
+        button.innerHTML = '&times;';
+        button.addEventListener('click', function() {
+            input.value = '';
+            updateAttachmentPreview();
+        });
+        return button;
+    }
+
+    function updateAttachmentPreview() {
+        if (!attachmentPreview) return;
+        attachmentPreview.innerHTML = '';
+
+        [
+            [imageInput, 'image'],
+            [videoInput, 'video'],
+            [fileInput, 'file']
+        ].forEach(function(itemData) {
+            const input = itemData[0];
+            const type = itemData[1];
+            if (!input || !input.files.length) return;
+
+            const selectedFile = input.files[0];
+            const item = document.createElement('div');
+            item.className = type === 'file' ? 'selected-file' : 'selected-attachment';
+
+            if (type === 'image') {
+                const image = document.createElement('img');
+                image.src = URL.createObjectURL(selectedFile);
+                image.alt = selectedFile.name;
+                item.appendChild(image);
+            } else if (type === 'video') {
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(selectedFile);
+                video.controls = true;
+                item.appendChild(video);
+            }
+
+            const name = document.createElement('span');
+            name.textContent = selectedFile.name;
+            item.appendChild(name);
+            item.appendChild(createRemoveButton(input));
+            attachmentPreview.appendChild(item);
+        });
+
+        if (messageInput) messageInput.focus();
+    }
+
+    if (messageForm) {
+        messageForm.addEventListener('submit', function(event) {
+            if (manualFormSubmit) return;
+
+            if (!hasText() && !hasAttachment()) {
+                event.preventDefault();
+                showWebSocketError('Please enter a message or select an attachment.');
+                return;
+            }
+
+            if (hasAttachment()) {
+                manualFormSubmit = true;
+                return;
+            }
+
+            event.preventDefault();
+            if (!sendTextMessage()) {
+                manualFormSubmit = true;
+                messageForm.submit();
+            }
+        });
+    }
+
+    if (messageInput) {
+        messageInput.addEventListener('keydown', function(event) {
+            if (event.key !== 'Enter' || event.shiftKey) return;
+            event.preventDefault();
+
+            if (!hasText() && !hasAttachment()) return;
+
+            if (hasAttachment()) {
+                manualFormSubmit = true;
+                messageForm.submit();
+            } else if (!sendTextMessage()) {
+                manualFormSubmit = true;
+                messageForm.submit();
+            }
+        });
+
+        messageInput.addEventListener('input', function() {
+            const isTyping = Boolean(messageInput.value.trim());
+            if (!isTyping) {
+                stopTyping();
+                return;
+            }
+
+            if (!typingWasSent) {
+                sendSocketData({type: 'typing', is_typing: true});
+                typingWasSent = true;
+            }
+
+            if (typingTimeout) clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(stopTyping, 1500);
+        });
+
+        messageInput.focus();
+    }
+
+    [imageInput, videoInput, fileInput].forEach(function(input) {
+        if (input) input.addEventListener('change', updateAttachmentPreview);
+    });
+
+    if (messagesContainer) {
+        messagesContainer.addEventListener('click', function(event) {
+            const deleteButton = event.target.closest('.message-delete-button');
+            const editButton = event.target.closest('.message-edit-button');
+            if (deleteButton) deleteMessage(deleteButton.dataset.deleteMessageId);
+            if (editButton) editMessage(editButton);
+        });
+    }
+
+    if (loadOlderButton) loadOlderButton.addEventListener('click', loadOlderMessages);
+    document.addEventListener('visibilitychange', sendMarkRead);
+    window.addEventListener('focus', sendMarkRead);
+    window.addEventListener('beforeunload', function() {
+        stopTyping();
+        if (reconnectTimeout) clearTimeout(reconnectTimeout);
+        if (chatSocket) {
+            chatSocket.onclose = null;
+            chatSocket.close();
+        }
+    });
+
+    scrollMessagesToBottom();
+    connectWebSocket();
+</script>
+
+{% endblock %}

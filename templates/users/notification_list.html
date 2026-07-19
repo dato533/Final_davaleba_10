@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Notifications | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="people-container">
+
+    <div class="notification-header">
+
+        <div>
+            <h1>Notifications</h1>
+            <p>Your latest activity.</p>
+        </div>
+
+        {% if notifications %}
+
+            <div class="notification-header-actions">
+
+                <form
+                    method="post"
+                    action="{% url 'users:mark_all_notifications_read' %}"
+                >
+                    {% csrf_token %}
+
+                    <button type="submit" class="secondary-action-button">
+                        Mark all as read
+                    </button>
+                </form>
+
+                <form
+                    method="post"
+                    action="{% url 'users:delete_all_notifications' %}"
+                >
+                    {% csrf_token %}
+
+                    <button
+                        type="submit"
+                        class="danger-small-button"
+                        onclick="return confirm('Are you sure you want to delete all notifications?')"
+                    >
+                        Delete all
+                    </button>
+                </form>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+    <div class="notification-list">
+
+        {% for notification in notifications %}
+
+            <div class="notification-item {% if not notification.is_read %}notification-unread{% endif %}">
+
+                <a
+                    href="{% url 'users:open_notification' notification.id %}"
+                    class="notification-main"
+                >
+
+                    {% if notification.sender.profile.avatar %}
+                        <img
+                            src="{{ notification.sender.profile.avatar.url }}"
+                            alt="Avatar"
+                            class="notification-avatar"
+                        >
+                    {% else %}
+                        <div class="notification-default-avatar">
+                            {{ notification.sender.first_name|first|upper }}
+                        </div>
+                    {% endif %}
+
+                    <div class="notification-content">
+
+                        <p>
+                            {{ notification.text }}
+                        </p>
+
+                        <span>
+                            {{ notification.created_at|date:"F d, Y H:i" }}
+                        </span>
+
+                    </div>
+
+                </a>
+
+                <form
+                    method="post"
+                    action="{% url 'users:delete_notification' notification.id %}"
+                >
+                    {% csrf_token %}
+
+                    <button type="submit" class="comment-delete-button">
+                        Delete
+                    </button>
+                </form>
+
+            </div>
+
+        {% empty %}
+
+            <div class="empty-card">
+                <h2>No notifications</h2>
+                <p>You do not have any notifications yet.</p>
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+{% endblock %}

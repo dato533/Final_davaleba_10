@@ -1,0 +1,568 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Feed | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="social-layout">
+
+    <aside class="left-sidebar">
+
+        <div class="sidebar-profile-card">
+
+            <a href="{% url 'users:profile_detail' request.user.id %}" class="sidebar-profile-link">
+
+                {% if request.user.profile.avatar %}
+                    <img src="{{ request.user.profile.avatar.url }}" alt="Profile avatar" class="sidebar-profile-avatar">
+                {% else %}
+                    <div class="sidebar-default-avatar">
+                        {{ request.user.first_name|first|upper }}
+                    </div>
+                {% endif %}
+
+                <div>
+
+                    <strong>
+                        {{ request.user.first_name }}
+                        {{ request.user.last_name }}
+                    </strong>
+
+                    {% if request.user.is_online %}
+
+                        <span class="sidebar-online-status">
+                            <span class="online-status-dot"></span>
+                            Online
+                        </span>
+
+                    {% else %}
+
+                        <span>
+                            Last seen {{ request.user.last_activity|timesince }} ago
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+            </a>
+
+        </div>
+
+        <nav class="sidebar-navigation">
+
+            <a href="{% url 'posts:feed' %}" class="sidebar-link sidebar-link-active">
+                <span class="sidebar-icon">&#8962;</span>
+                Feed
+            </a>
+
+            <a href="{% url 'users:profile_detail' request.user.id %}" class="sidebar-link">
+                <span class="sidebar-icon">&#128100;</span>
+                Profile
+            </a>
+
+            <a href="{% url 'chat:conversation_list' %}" class="sidebar-link">
+
+                <span class="sidebar-icon">&#128172;</span>
+
+                Messages
+
+                {% if unread_messages_count > 0 %}
+                    <span class="sidebar-notification-count">
+                        {{ unread_messages_count }}
+                    </span>
+                {% endif %}
+
+            </a>
+
+            <a href="{% url 'users:friends_list' %}" class="sidebar-link">
+                <span class="sidebar-icon">&#128101;</span>
+                Friends
+            </a>
+
+            <a href="{% url 'users:friend_requests' %}" class="sidebar-link">
+                <span class="sidebar-icon">&#128233;</span>
+                Friend requests
+            </a>
+
+            <a href="{% url 'users:user_search' %}" class="sidebar-link">
+                <span class="sidebar-icon">&#128269;</span>
+                Find people
+            </a>
+
+            <a href="{% url 'users:notification_list' %}" class="sidebar-link">
+
+                <span class="sidebar-icon">&#128276;</span>
+
+                Notifications
+
+                {% if unread_notifications_count > 0 %}
+                    <span class="sidebar-notification-count">
+                        {{ unread_notifications_count }}
+                    </span>
+                {% endif %}
+
+            </a>
+
+        </nav>
+
+    </aside>
+
+    <main class="feed-column">
+
+        <div class="feed-page-heading">
+
+            <div>
+                <h1>Home feed</h1>
+                <p>See what people are sharing.</p>
+            </div>
+
+            <div class="feed-tabs">
+
+                <a href="{% url 'posts:feed' %}?type=friends" class="feed-tab {% if feed_type == 'friends' %}feed-tab-active{% endif %}">
+                    Friends Feed
+                </a>
+
+                <a href="{% url 'posts:feed' %}?type=all" class="feed-tab {% if feed_type == 'all' %}feed-tab-active{% endif %}">
+                    All Posts
+                </a>
+
+            </div>
+
+        </div>
+
+        <div class="quick-post-card">
+
+            <div class="quick-post-top">
+
+                {% if request.user.profile.avatar %}
+                    <img src="{{ request.user.profile.avatar.url }}" alt="Avatar" class="quick-post-avatar">
+                {% else %}
+                    <div class="quick-post-default-avatar">
+                        {{ request.user.first_name|first|upper }}
+                    </div>
+                {% endif %}
+
+                <a href="{% url 'posts:create_post' %}" class="quick-post-input">
+                    What's on your mind, {{ request.user.first_name }}?
+                </a>
+
+            </div>
+
+            <div class="quick-post-actions">
+
+                <a href="{% url 'posts:create_post' %}" class="quick-post-action">
+                    <span>&#128247;</span>
+                    Photo
+                </a>
+
+                <a href="{% url 'posts:create_post' %}" class="quick-post-action">
+                    <span>&#127909;</span>
+                    Video
+                </a>
+
+                <a href="{% url 'posts:create_post' %}" class="quick-post-action">
+                    <span>&#9998;</span>
+                    Text post
+                </a>
+
+            </div>
+
+        </div>
+
+        <div class="feed-posts">
+
+            {% for post in posts %}
+
+                <article class="post-card" id="post-{{ post.id }}">
+
+                    <div class="post-header">
+
+                        <a href="{% url 'users:profile_detail' post.author.id %}" class="post-author">
+
+                            {% if post.author.profile.avatar %}
+                                <img src="{{ post.author.profile.avatar.url }}" alt="Avatar" class="post-avatar">
+                            {% else %}
+                                <div class="post-default-avatar">
+                                    {{ post.author.first_name|first|upper }}
+                                </div>
+                            {% endif %}
+
+                            <div>
+
+                                <strong>
+                                    {{ post.author.first_name }}
+                                    {{ post.author.last_name }}
+                                </strong>
+
+                                <span>
+                                    {{ post.created_at|date:"F d, Y H:i" }}
+                                </span>
+
+                            </div>
+
+                        </a>
+
+                        {% if request.user == post.author %}
+
+                            <div class="post-actions">
+
+                                <a href="{% url 'posts:edit_post' post.id %}">
+                                    Edit
+                                </a>
+
+                                <a href="{% url 'posts:delete_post' post.id %}" class="delete-link">
+                                    Delete
+                                </a>
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                    <a href="{% url 'posts:post_detail' post.id %}?next={{ request.get_full_path|urlencode }}" class="post-content-link">
+
+                        {% if post.text %}
+                            <p class="post-text">
+                                {{ post.text|linebreaksbr }}
+                            </p>
+                        {% endif %}
+
+                        {% if post.shared_post %}
+
+                            <div class="shared-post-card">
+
+                                <div class="shared-post-header">
+
+                                    <a href="{% url 'users:profile_detail' post.shared_post.author.id %}">
+                                        {{ post.shared_post.author.first_name }}
+                                        {{ post.shared_post.author.last_name }}
+                                    </a>
+
+                                    <span>
+                                        {{ post.shared_post.created_at|date:"F d, Y H:i" }}
+                                    </span>
+
+                                </div>
+
+                                {% if post.shared_post.text %}
+                                    <p class="shared-post-text">
+                                        {{ post.shared_post.text|linebreaksbr }}
+                                    </p>
+                                {% endif %}
+
+                                {% include 'posts/includes/post_media_grid.html' with post=post.shared_post editable=False %}
+
+                            </div>
+
+                        {% else %}
+
+                            {% include 'posts/includes/post_media_grid.html' with post=post editable=False %}
+
+                        {% endif %}
+
+                    </a>
+
+                    <div class="post-stats">
+
+                        <span class="reaction-summary">
+
+                            {% for emoji in post.reaction_emojis %}
+                                <span class="reaction-summary-emoji">
+                                    {{ emoji }}
+                                </span>
+                            {% endfor %}
+
+                            {% if post.total_reactions > 0 %}
+
+                                <span>
+                                    {{ post.total_reactions }}
+
+                                    {% if post.total_reactions == 1 %}
+                                        reaction
+                                    {% else %}
+                                        reactions
+                                    {% endif %}
+                                </span>
+
+                            {% else %}
+
+                                <span>
+                                    No reactions
+                                </span>
+
+                            {% endif %}
+
+                        </span>
+
+                        <span>
+                            {{ post.comments.count }} comments
+                        </span>
+
+                    </div>
+
+                    <div class="feed-post-interactions">
+
+                        <details class="reaction-picker">
+
+                            <summary class="feed-interaction-button {% if post.user_reaction %}reaction-selected{% endif %}">
+
+                                {% if post.user_reaction == 'love' %}
+                                    ❤️ Love
+                                {% elif post.user_reaction == 'haha' %}
+                                    😂 Haha
+                                {% elif post.user_reaction == 'wow' %}
+                                    😮 Wow
+                                {% elif post.user_reaction == 'sad' %}
+                                    😢 Sad
+                                {% elif post.user_reaction == 'angry' %}
+                                    😡 Angry
+                                {% elif post.user_reaction == 'like' %}
+                                    👍 Like
+                                {% else %}
+                                    ♡ React
+                                {% endif %}
+
+                            </summary>
+
+                            <div class="reaction-menu">
+
+                                <form method="post" action="{% url 'posts:toggle_like' post.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="reaction_type" value="like">
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ post.id }}">
+
+                                    <button type="submit" class="reaction-option" title="Like">
+                                        <span>👍</span>
+                                        <small>Like</small>
+                                    </button>
+                                </form>
+
+                                <form method="post" action="{% url 'posts:toggle_like' post.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="reaction_type" value="love">
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ post.id }}">
+
+                                    <button type="submit" class="reaction-option" title="Love">
+                                        <span>❤️</span>
+                                        <small>Love</small>
+                                    </button>
+                                </form>
+
+                                <form method="post" action="{% url 'posts:toggle_like' post.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="reaction_type" value="haha">
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ post.id }}">
+
+                                    <button type="submit" class="reaction-option" title="Haha">
+                                        <span>😂</span>
+                                        <small>Haha</small>
+                                    </button>
+                                </form>
+
+                                <form method="post" action="{% url 'posts:toggle_like' post.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="reaction_type" value="wow">
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ post.id }}">
+
+                                    <button type="submit" class="reaction-option" title="Wow">
+                                        <span>😮</span>
+                                        <small>Wow</small>
+                                    </button>
+                                </form>
+
+                                <form method="post" action="{% url 'posts:toggle_like' post.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="reaction_type" value="sad">
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ post.id }}">
+
+                                    <button type="submit" class="reaction-option" title="Sad">
+                                        <span>😢</span>
+                                        <small>Sad</small>
+                                    </button>
+                                </form>
+
+                                <form method="post" action="{% url 'posts:toggle_like' post.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="reaction_type" value="angry">
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ post.id }}">
+
+                                    <button type="submit" class="reaction-option" title="Angry">
+                                        <span>😡</span>
+                                        <small>Angry</small>
+                                    </button>
+                                </form>
+
+                            </div>
+
+                        </details>
+
+                        <a href="{% url 'posts:post_detail' post.id %}?next={{ request.get_full_path|urlencode }}" class="feed-interaction-button">
+                            &#128172; Comment
+                        </a>
+
+                        {% if not post.shared_post %}
+
+                            <a href="{% url 'posts:repost_post' post.id %}" class="feed-interaction-button">
+                                🔄 Share
+                            </a>
+
+                        {% endif %}
+
+                    </div>
+
+                </article>
+
+            {% empty %}
+
+                <div class="empty-card">
+
+                    <h2>No posts yet</h2>
+
+                    <p>
+                        Create the first post and share something with the community.
+                    </p>
+
+                    <a href="{% url 'posts:create_post' %}" class="primary-link-button">
+                        Create post
+                    </a>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    </main>
+
+    <aside class="right-sidebar">
+
+        <section class="right-sidebar-card">
+
+            <div class="right-sidebar-heading">
+
+                <h3>Friends</h3>
+
+                <a href="{% url 'users:friends_list' %}">
+                    See all
+                </a>
+
+            </div>
+
+            <div class="sidebar-friends-list">
+
+                {% for friend in recent_friends %}
+
+                    <a href="{% url 'users:profile_detail' friend.id %}" class="sidebar-friend">
+
+                        {% if friend.profile.avatar %}
+                            <img src="{{ friend.profile.avatar.url }}" alt="Avatar">
+                        {% else %}
+                            <div class="sidebar-friend-default-avatar">
+                                {{ friend.first_name|first|upper }}
+                            </div>
+                        {% endif %}
+
+                        <div>
+
+                            <strong>
+                                {{ friend.first_name }}
+                                {{ friend.last_name }}
+                            </strong>
+
+                            {% if friend.is_online %}
+
+                                <span class="sidebar-online-status">
+                                    <span class="online-status-dot"></span>
+                                    Online
+                                </span>
+
+                            {% else %}
+
+                                <span>
+                                    Last seen {{ friend.last_activity|timesince }} ago
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+                    </a>
+
+                {% empty %}
+
+                    <div class="sidebar-empty-state">
+
+                        <p>You do not have friends yet.</p>
+
+                        <a href="{% url 'users:user_search' %}">
+                            Find people
+                        </a>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </section>
+
+        <section class="right-sidebar-card">
+
+            <div class="right-sidebar-heading">
+
+                <h3>Notifications</h3>
+
+                <a href="{% url 'users:notification_list' %}">
+                    See all
+                </a>
+
+            </div>
+
+            <div class="sidebar-notifications-list">
+
+                {% for notification in recent_notifications %}
+
+                    <a href="{% url 'users:open_notification' notification.id %}" class="sidebar-notification {% if not notification.is_read %}sidebar-notification-unread{% endif %}">
+
+                        {% if notification.sender.profile.avatar %}
+                            <img src="{{ notification.sender.profile.avatar.url }}" alt="Avatar">
+                        {% else %}
+                            <div class="sidebar-notification-avatar">
+                                {{ notification.sender.first_name|first|upper }}
+                            </div>
+                        {% endif %}
+
+                        <div>
+
+                            <p>
+                                {{ notification.text|truncatechars:65 }}
+                            </p>
+
+                            <span>
+                                {{ notification.created_at|date:"M d, H:i" }}
+                            </span>
+
+                        </div>
+
+                    </a>
+
+                {% empty %}
+
+                    <div class="sidebar-empty-state">
+                        <p>No new notifications.</p>
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </section>
+
+    </aside>
+
+</div>
+
+{% endblock %}

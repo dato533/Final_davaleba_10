@@ -1,0 +1,410 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Post | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="feed-layout">
+
+    <article class="post-card" id="post-{{ post.id }}">
+
+        <div class="post-header">
+
+            <a href="{% url 'users:profile_detail' post.author.id %}" class="post-author">
+
+                {% if post.author.profile.avatar %}
+                    <img src="{{ post.author.profile.avatar.url }}" alt="Avatar" class="post-avatar">
+                {% else %}
+                    <div class="post-default-avatar">
+                        {{ post.author.first_name|first|upper }}
+                    </div>
+                {% endif %}
+
+                <div>
+                    <strong>
+                        {{ post.author.first_name }}
+                        {{ post.author.last_name }}
+                    </strong>
+
+                    <span>
+                        {{ post.created_at|date:"F d, Y H:i" }}
+                    </span>
+
+                    {% if post.shared_post %}
+                        <span>
+                            Shared a post
+                        </span>
+                    {% endif %}
+                </div>
+
+            </a>
+
+            {% if request.user == post.author %}
+
+                <div class="post-actions">
+
+                    <a href="{% url 'posts:edit_post' post.id %}">
+                        Edit
+                    </a>
+
+                    <a href="{% url 'posts:delete_post' post.id %}" class="delete-link">
+                        Delete
+                    </a>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+        {% if post.text %}
+            <p class="post-text">
+                {{ post.text|linebreaksbr }}
+            </p>
+        {% endif %}
+
+        {% if post.shared_post %}
+
+            <div class="shared-post-card">
+
+                <div class="shared-post-header">
+
+                    <p class="shared-from-text">
+                        🔄 Shared from
+
+                        <a href="{% url 'users:profile_detail' post.shared_post.author.id %}">
+                            {{ post.shared_post.author.first_name }}
+                            {{ post.shared_post.author.last_name }}
+                        </a>
+                    </p>
+
+                    <span>
+                        {{ post.shared_post.created_at|date:"F d, Y H:i" }}
+                    </span>
+
+                </div>
+
+                <a href="{% url 'posts:post_detail' post.shared_post.id %}" class="shared-post-content-link">
+
+                    {% if post.shared_post.text %}
+                        <p class="shared-post-text">
+                            {{ post.shared_post.text|linebreaksbr }}
+                        </p>
+                    {% endif %}
+
+                    {% include 'posts/includes/post_media_grid.html' with post=post.shared_post editable=False %}
+
+                </a>
+
+            </div>
+
+        {% else %}
+
+            {% include 'posts/includes/post_media_grid.html' with post=post editable=False %}
+
+        {% endif %}
+
+        <div class="post-stats">
+
+            <span class="reaction-summary">
+
+                {% for emoji in post.reaction_emojis %}
+                    <span class="reaction-summary-emoji">
+                        {{ emoji }}
+                    </span>
+                {% endfor %}
+
+                {% if post.total_reactions > 0 %}
+
+                    <span>
+                        {{ post.total_reactions }}
+
+                        {% if post.total_reactions == 1 %}
+                            reaction
+                        {% else %}
+                            reactions
+                        {% endif %}
+                    </span>
+
+                {% else %}
+
+                    <span>
+                        No reactions
+                    </span>
+
+                {% endif %}
+
+            </span>
+
+            <span>
+                {{ post.comments.count }} comments
+            </span>
+
+            <span>
+                {{ post.total_reposts }} shares
+            </span>
+
+        </div>
+
+        <div class="post-interactions">
+
+            <details class="reaction-picker">
+
+                <summary class="interaction-button {% if user_reaction %}reaction-selected{% endif %}">
+
+                    {% if user_reaction.reaction_type == 'love' %}
+                        ❤️ Love
+                    {% elif user_reaction.reaction_type == 'haha' %}
+                        😂 Haha
+                    {% elif user_reaction.reaction_type == 'wow' %}
+                        😮 Wow
+                    {% elif user_reaction.reaction_type == 'sad' %}
+                        😢 Sad
+                    {% elif user_reaction.reaction_type == 'angry' %}
+                        😡 Angry
+                    {% elif user_reaction.reaction_type == 'like' %}
+                        👍 Like
+                    {% else %}
+                        ♡ React
+                    {% endif %}
+
+                </summary>
+
+                <div class="reaction-menu">
+
+                    <form method="post" action="{% url 'posts:toggle_like' post.id %}">
+                        {% csrf_token %}
+
+                        <input type="hidden" name="reaction_type" value="like">
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ post.id }}">
+
+                        <button type="submit" class="reaction-option" title="Like">
+                            <span>👍</span>
+                            <small>Like</small>
+                        </button>
+                    </form>
+
+                    <form method="post" action="{% url 'posts:toggle_like' post.id %}">
+                        {% csrf_token %}
+
+                        <input type="hidden" name="reaction_type" value="love">
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ post.id }}">
+
+                        <button type="submit" class="reaction-option" title="Love">
+                            <span>❤️</span>
+                            <small>Love</small>
+                        </button>
+                    </form>
+
+                    <form method="post" action="{% url 'posts:toggle_like' post.id %}">
+                        {% csrf_token %}
+
+                        <input type="hidden" name="reaction_type" value="haha">
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ post.id }}">
+
+                        <button type="submit" class="reaction-option" title="Haha">
+                            <span>😂</span>
+                            <small>Haha</small>
+                        </button>
+                    </form>
+
+                    <form method="post" action="{% url 'posts:toggle_like' post.id %}">
+                        {% csrf_token %}
+
+                        <input type="hidden" name="reaction_type" value="wow">
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ post.id }}">
+
+                        <button type="submit" class="reaction-option" title="Wow">
+                            <span>😮</span>
+                            <small>Wow</small>
+                        </button>
+                    </form>
+
+                    <form method="post" action="{% url 'posts:toggle_like' post.id %}">
+                        {% csrf_token %}
+
+                        <input type="hidden" name="reaction_type" value="sad">
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ post.id }}">
+
+                        <button type="submit" class="reaction-option" title="Sad">
+                            <span>😢</span>
+                            <small>Sad</small>
+                        </button>
+                    </form>
+
+                    <form method="post" action="{% url 'posts:toggle_like' post.id %}">
+                        {% csrf_token %}
+
+                        <input type="hidden" name="reaction_type" value="angry">
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ post.id }}">
+
+                        <button type="submit" class="reaction-option" title="Angry">
+                            <span>😡</span>
+                            <small>Angry</small>
+                        </button>
+                    </form>
+
+                </div>
+
+            </details>
+
+            <button type="button" class="interaction-button" onclick="focusCommentInput()">
+                💬 Comment
+            </button>
+
+            {% if not post.shared_post %}
+
+                <a href="{% url 'posts:repost_post' post.id %}" class="interaction-button">
+                    🔄 Share
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    </article>
+
+    <section class="comments-card" id="comments">
+
+        <h2>Comments</h2>
+
+        <form method="post" action="{% url 'posts:add_comment' post.id %}" class="comment-form">
+            {% csrf_token %}
+
+            <div class="comment-user-avatar">
+
+                {% if request.user.profile.avatar %}
+                    <img src="{{ request.user.profile.avatar.url }}" alt="Avatar">
+                {% else %}
+                    <div class="comment-default-avatar">
+                        {{ request.user.first_name|first|upper }}
+                    </div>
+                {% endif %}
+
+            </div>
+
+            <div class="comment-form-content">
+
+                {{ comment_form.text }}
+
+                {% if comment_form.text.errors %}
+                    <div class="field-errors">
+                        {{ comment_form.text.errors }}
+                    </div>
+                {% endif %}
+
+                <button type="submit" class="comment-submit-button">
+                    Comment
+                </button>
+
+            </div>
+
+        </form>
+
+        <div class="comments-list">
+
+            {% for comment in post.comments.all %}
+
+                <div class="comment-item">
+
+                    <a href="{% url 'users:profile_detail' comment.author.id %}" class="comment-avatar-link">
+
+                        {% if comment.author.profile.avatar %}
+                            <img src="{{ comment.author.profile.avatar.url }}" alt="Avatar" class="comment-avatar">
+                        {% else %}
+                            <div class="comment-default-avatar">
+                                {{ comment.author.first_name|first|upper }}
+                            </div>
+                        {% endif %}
+
+                    </a>
+
+                    <div class="comment-content">
+
+                        <div class="comment-bubble">
+
+                            <a href="{% url 'users:profile_detail' comment.author.id %}" class="comment-author">
+                                {{ comment.author.first_name }}
+                                {{ comment.author.last_name }}
+                            </a>
+
+                            <p>
+                                {{ comment.text|linebreaksbr }}
+                            </p>
+
+                        </div>
+
+                        <div class="comment-information">
+
+                            <span>
+                                {{ comment.created_at|date:"F d, Y H:i" }}
+                            </span>
+
+                            {% if request.user == comment.author %}
+
+                                <a href="{% url 'posts:edit_comment' comment.id %}" class="comment-edit-link">
+                                    Edit
+                                </a>
+
+                                <form method="post" action="{% url 'posts:delete_comment' comment.id %}">
+                                    {% csrf_token %}
+
+                                    <button type="submit" class="comment-delete-button">
+                                        Delete
+                                    </button>
+                                </form>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            {% empty %}
+
+                <div class="no-comments">
+                    No comments yet. Be the first to comment.
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+    {% if next_url %}
+
+        <a href="{{ next_url }}#post-{{ post.id }}" class="back-link">
+            &#8592; Back to feed
+        </a>
+
+    {% else %}
+
+        <a href="{% url 'posts:feed' %}#post-{{ post.id }}" class="back-link">
+            &#8592; Back to feed
+        </a>
+
+    {% endif %}
+
+</div>
+
+<script>
+    function focusCommentInput() {
+        const commentInput = document.querySelector('.comment-input');
+
+        if (commentInput) {
+            commentInput.focus();
+
+            commentInput.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }
+    }
+</script>
+
+{% endblock %}

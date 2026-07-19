@@ -1,0 +1,84 @@
+<div
+    class="message-row {% if message.sender == request.user %}message-row-right{% else %}message-row-left{% endif %}"
+    data-message-row-id="{{ message.id }}"
+>
+    {% if message.sender != request.user %}
+        <div class="message-sender-avatar">
+            {% if message.sender.profile.avatar %}
+                <img src="{{ message.sender.profile.avatar.url }}" alt="Avatar">
+            {% else %}
+                <div class="message-default-avatar">
+                    {{ message.sender.first_name|first|upper }}
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <div class="message-bubble {% if message.sender == request.user %}message-bubble-right{% else %}message-bubble-left{% endif %}">
+        {% if conversation.conversation_type == 'group' and message.sender != request.user %}
+            <div class="message-sender-name">
+                {{ message.sender.first_name }} {{ message.sender.last_name }}
+            </div>
+        {% endif %}
+
+        <div class="message-content" data-message-content-id="{{ message.id }}">
+            {% if message.text %}
+                <p class="message-text">{{ message.text|linebreaksbr }}</p>
+            {% endif %}
+        </div>
+
+        {% if message.image %}
+            <a href="{{ message.image.url }}" target="_blank" rel="noopener">
+                <img src="{{ message.image.url }}" alt="Message image" class="message-image">
+            </a>
+        {% endif %}
+
+        {% if message.video %}
+            <video controls preload="metadata" class="message-video">
+                <source src="{{ message.video.url }}">
+                Your browser does not support video playback.
+            </video>
+        {% endif %}
+
+        {% if message.file %}
+            <a href="{{ message.file.url }}" download class="message-file">
+                {{ message.file.name|cut:"chat/files/" }}
+            </a>
+        {% endif %}
+
+        {% if message.sender == request.user %}
+            <div class="message-actions">
+                <button
+                    type="button"
+                    class="message-edit-button"
+                    data-edit-message-id="{{ message.id }}"
+                    data-message-text="{{ message.text|escape }}"
+                    title="Edit message"
+                    aria-label="Edit message"
+                >✎</button>
+                <button
+                    type="button"
+                    class="message-delete-button"
+                    data-delete-message-id="{{ message.id }}"
+                    title="Delete message"
+                    aria-label="Delete message"
+                >&times;</button>
+            </div>
+        {% endif %}
+
+        <div class="message-time">
+            {{ message.created_at|date:"H:i" }}
+            <span
+                class="message-edited-label"
+                data-edited-label-id="{{ message.id }}"
+                {% if not message.edited_at %}style="display: none;"{% endif %}
+            >edited</span>
+
+            {% if message.sender == request.user %}
+                <span class="message-read-status" data-message-id="{{ message.id }}">
+                    {% if message.is_read %}✓✓{% else %}✓{% endif %}
+                </span>
+            {% endif %}
+        </div>
+    </div>
+</div>

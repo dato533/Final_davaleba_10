@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Edit Comment | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="auth-container">
+
+    <div class="auth-card">
+
+        <h1>Edit comment</h1>
+
+        <p class="auth-description">
+            Update your comment.
+        </p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="form-errors">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            {% for field in form %}
+
+                <div class="form-group">
+
+                    <label for="{{ field.id_for_label }}">
+                        {{ field.label }}
+                    </label>
+
+                    {{ field }}
+
+                    {% if field.errors %}
+                        <div class="field-errors">
+                            {{ field.errors }}
+                        </div>
+                    {% endif %}
+
+                </div>
+
+            {% endfor %}
+
+            <button type="submit" class="primary-button">
+                Save changes
+            </button>
+
+        </form>
+
+        <a href="{% url 'posts:post_detail' comment.post.id %}" class="cancel-link">
+            Cancel
+        </a>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+

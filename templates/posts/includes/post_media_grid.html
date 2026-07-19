@@ -1,0 +1,91 @@
+{% with media_count=post.media.count %}
+
+    {% if media_count > 0 %}
+
+        {% if editable %}
+
+            <div class="edit-media-grid">
+
+                {% for media in post.media.all %}
+
+                    <div class="edit-media-item" id="media-item-{{ media.id }}">
+
+                        {% if media.media_type == 'image' %}
+                            <img src="{{ media.file.url }}" alt="Post image">
+                        {% else %}
+                            <video controls>
+                                <source src="{{ media.file.url }}">
+                                Your browser does not support video playback.
+                            </video>
+                        {% endif %}
+
+                        <button
+                            type="button"
+                            class="media-delete-button"
+                            data-media-id="{{ media.id }}"
+                            onclick="markMediaForDeletion(this.dataset.mediaId)"
+                        >
+                            &times;
+                        </button>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <div class="post-media-grid media-count-{{ media_count }}">
+
+                {% for media in post.media.all %}
+
+                    {% if forloop.counter <= 4 %}
+
+                        <div
+                            class="post-media-item"
+                            onclick="openGallery({{ post.id }}, {{ forloop.counter0 }})"
+                        >
+
+                            {% if media.media_type == 'image' %}
+                                <img src="{{ media.file.url }}" alt="Post image">
+                            {% else %}
+                                <video muted>
+                                    <source src="{{ media.file.url }}">
+                                </video>
+
+                                <div class="video-indicator">
+                                    ▶
+                                </div>
+                            {% endif %}
+
+                            {% if media_count > 4 and forloop.counter == 4 %}
+                                <div class="more-media-overlay">
+                                    +{{ media_count|add:"-4" }}
+                                </div>
+                            {% endif %}
+
+                        </div>
+
+                    {% endif %}
+
+                {% endfor %}
+
+            </div>
+
+            <div id="gallery-data-{{ post.id }}" hidden>
+
+                {% for media in post.media.all %}
+                    <span
+                        data-url="{{ media.file.url }}"
+                        data-type="{{ media.media_type }}"
+                    ></span>
+                {% endfor %}
+
+            </div>
+
+        {% endif %}
+
+    {% endif %}
+
+{% endwith %}

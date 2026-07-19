@@ -1,0 +1,263 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {{ profile_user.first_name }} {{ profile_user.last_name }} | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="profile-container">
+
+    <div class="profile-card">
+
+        <div class="profile-cover">
+            {% if profile_user.profile.cover_image %}
+                <img src="{{ profile_user.profile.cover_image.url }}" alt="Cover image">
+            {% else %}
+                <div class="default-cover"></div>
+            {% endif %}
+        </div>
+
+        <div class="profile-information">
+
+            <div class="profile-avatar">
+                {% if profile_user.profile.avatar %}
+                    <img src="{{ profile_user.profile.avatar.url }}" alt="Profile avatar">
+                {% else %}
+                    <div class="default-avatar">
+                        {{ profile_user.first_name|first|upper }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="profile-heading">
+
+                <div>
+                    <h1>
+                        {{ profile_user.first_name }}
+                        {{ profile_user.last_name }}
+                    </h1>
+
+                    <p>{{ profile_user.email }}</p>
+
+                    <div class="user-status">
+
+                        {% if profile_user.is_online %}
+
+                            <span class="online-status-dot"></span>
+                            <span class="online-status-text">
+                                Online
+                            </span>
+
+                        {% else %}
+
+                            <span class="offline-status-dot"></span>
+                            <span class="offline-status-text">
+                                Last seen {{ profile_user.last_activity|timesince }} ago
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+                </div>
+
+                <div class="profile-actions">
+
+                    {% if request.user == profile_user %}
+
+                        <a href="{% url 'users:edit_profile' %}" class="secondary-button">
+                            Edit profile
+                        </a>
+
+                    {% elif is_friend %}
+
+                        <a href="{% url 'chat:start_private_conversation' profile_user.id %}" class="primary-small-button">
+                            Message
+                        </a>
+
+                        <form method="post" action="{% url 'users:remove_friend' profile_user.id %}">
+                            {% csrf_token %}
+
+                            <button type="submit" class="danger-small-button">
+                                Remove friend
+                            </button>
+                        </form>
+
+                    {% elif received_request %}
+
+                        <div class="profile-request-actions">
+
+                            <form method="post" action="{% url 'users:accept_friend_request' received_request.id %}">
+                                {% csrf_token %}
+
+                                <button type="submit" class="primary-small-button">
+                                    Accept request
+                                </button>
+                            </form>
+
+                            <form method="post" action="{% url 'users:decline_friend_request' received_request.id %}">
+                                {% csrf_token %}
+
+                                <button type="submit" class="secondary-action-button">
+                                    Decline
+                                </button>
+                            </form>
+
+                        </div>
+
+                    {% elif sent_request %}
+
+                        <button type="button" class="disabled-button" disabled>
+                            Request sent
+                        </button>
+
+                    {% else %}
+
+                        <form method="post" action="{% url 'users:send_friend_request' profile_user.id %}">
+                            {% csrf_token %}
+
+                            <button type="submit" class="primary-small-button">
+                                Add friend
+                            </button>
+                        </form>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            <div class="profile-details">
+
+                {% if profile_user.profile.bio %}
+                    <div class="profile-section">
+                        <h3>About</h3>
+                        <p>{{ profile_user.profile.bio }}</p>
+                    </div>
+                {% endif %}
+
+                <p>
+                    <strong>Friends:</strong>
+
+                    <a href="{% url 'users:user_friends' profile_user.id %}">
+                        {{ friends_count }}
+                    </a>
+                </p>
+
+                <p>
+                    <strong>Posts:</strong>
+                    {{ user_posts|length }}
+                </p>
+
+                {% if profile_user.profile.city %}
+                    <p>
+                        <strong>City:</strong>
+                        {{ profile_user.profile.city }}
+                    </p>
+                {% endif %}
+
+                {% if profile_user.profile.birth_date %}
+                    <p>
+                        <strong>Birth date:</strong>
+                        {{ profile_user.profile.birth_date|date:"F d, Y" }}
+                    </p>
+                {% endif %}
+
+                <p>
+                    <strong>Joined:</strong>
+                    {{ profile_user.created_at|date:"F d, Y" }}
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="profile-posts">
+
+        <h2>Posts</h2>
+
+        {% for post in user_posts %}
+
+            <article class="post-card">
+
+                <div class="post-header">
+
+                    <a href="{% url 'users:profile_detail' post.author.id %}" class="post-author">
+
+                        {% if post.author.profile.avatar %}
+                            <img src="{{ post.author.profile.avatar.url }}" alt="Avatar" class="post-avatar">
+                        {% else %}
+                            <div class="post-default-avatar">
+                                {{ post.author.first_name|first|upper }}
+                            </div>
+                        {% endif %}
+
+                        <div>
+                            <strong>
+                                {{ post.author.first_name }}
+                                {{ post.author.last_name }}
+                            </strong>
+
+                            <span>
+                                {{ post.created_at|date:"F d, Y H:i" }}
+                            </span>
+                        </div>
+
+                    </a>
+
+                    {% if request.user == post.author %}
+
+                        <div class="post-actions">
+                            <a href="{% url 'posts:edit_post' post.id %}">
+                                Edit
+                            </a>
+
+                            <a href="{% url 'posts:delete_post' post.id %}" class="delete-link">
+                                Delete
+                            </a>
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+                <a href="{% url 'posts:post_detail' post.id %}" class="post-content-link">
+
+                    {% if post.text %}
+                        <p class="post-text">
+                            {{ post.text|linebreaksbr }}
+                        </p>
+                    {% endif %}
+
+                    {% include 'posts/includes/post_media_grid.html' with post=post editable=False %}
+
+                </a>
+
+                <div class="post-footer">
+                    <span>
+                        ♡ {{ post.likes.count }} Likes
+                    </span>
+
+                    <span>
+                        💬 {{ post.comments.count }} Comments
+                    </span>
+                </div>
+
+            </article>
+
+        {% empty %}
+
+            <div class="empty-card">
+                <h2>No posts yet</h2>
+                <p>This user has not published any posts yet.</p>
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+{% endblock %}

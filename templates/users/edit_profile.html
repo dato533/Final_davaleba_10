@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Edit Profile | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="auth-container">
+
+    <div class="auth-card profile-edit-card">
+
+        <h1>Edit profile</h1>
+
+        <p class="auth-description">
+            Update your personal information.
+        </p>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <h3 class="form-section-title">Account information</h3>
+
+            {% for field in user_form %}
+
+                <div class="form-group">
+
+                    <label for="{{ field.id_for_label }}">
+                        {{ field.label }}
+                    </label>
+
+                    {{ field }}
+
+                    {% if field.errors %}
+                        <div class="field-errors">
+                            {{ field.errors }}
+                        </div>
+                    {% endif %}
+
+                </div>
+
+            {% endfor %}
+
+            <h3 class="form-section-title">Profile information</h3>
+
+            {% for field in profile_form %}
+
+                <div class="form-group">
+
+                    <label for="{{ field.id_for_label }}">
+                        {{ field.label }}
+                    </label>
+
+                    {{ field }}
+
+                    {% if field.errors %}
+                        <div class="field-errors">
+                            {{ field.errors }}
+                        </div>
+                    {% endif %}
+
+                </div>
+
+            {% endfor %}
+
+            <button type="submit" class="primary-button">
+                Save changes
+            </button>
+
+        </form>
+
+        <div class="danger-zone">
+            <h3>Danger zone</h3>
+
+            <p>
+                Deleting your account cannot be undone.
+            </p>
+
+            <a href="{% url 'users:delete_account' %}" class="danger-button">
+                Delete account
+            </a>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

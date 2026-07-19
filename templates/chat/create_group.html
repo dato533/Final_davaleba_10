@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Create Group | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="auth-container">
+
+    <div class="auth-card profile-edit-card">
+
+        <h1>Create group chat</h1>
+
+        <p class="auth-description">
+            Choose a name, image, and participants.
+        </p>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="form-errors">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            {% for field in form %}
+
+                <div class="form-group">
+
+                    <label for="{{ field.id_for_label }}">
+                        {{ field.label }}
+                    </label>
+
+                    {{ field }}
+
+                    {% if field.help_text %}
+                        <div class="help-text">
+                            {{ field.help_text|safe }}
+                        </div>
+                    {% endif %}
+
+                    {% if field.errors %}
+                        <div class="field-errors">
+                            {{ field.errors }}
+                        </div>
+                    {% endif %}
+
+                </div>
+
+            {% endfor %}
+
+            <button type="submit" class="primary-button">
+                Create group
+            </button>
+
+        </form>
+
+        <a href="{% url 'chat:conversation_list' %}" class="cancel-link">
+            Cancel
+        </a>
+
+    </div>
+
+</div>
+
+{% endblock %}

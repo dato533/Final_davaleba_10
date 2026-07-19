@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Edit Post | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="auth-container">
+
+    <div class="auth-card post-form-card">
+
+        <h1>Edit post</h1>
+
+        <p class="auth-description">
+            Update your post content.
+        </p>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div id="deleted-media-inputs"></div>
+
+            <div class="post-edit-preview">
+
+                <h3>Current post</h3>
+
+                {% if post.text %}
+                    <p class="post-text">
+                        {{ post.text|linebreaksbr }}
+                    </p>
+                {% endif %}
+
+                {% include 'posts/includes/post_media_grid.html' with post=post editable=True %}
+
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="form-errors">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            {% for field in form %}
+
+                <div class="form-group">
+
+                    <label for="{{ field.id_for_label }}">
+                        {{ field.label }}
+                    </label>
+
+                    {{ field }}
+
+                    {% if field.help_text %}
+                        <div class="help-text">
+                            {{ field.help_text|safe }}
+                        </div>
+                    {% endif %}
+
+                    {% if field.errors %}
+                        <div class="field-errors">
+                            {{ field.errors }}
+                        </div>
+                    {% endif %}
+
+                </div>
+
+            {% endfor %}
+
+            <h3 class="form-section-title">
+                New media preview
+            </h3>
+
+            <div id="media-preview" class="media-preview-grid"></div>
+
+            <button type="submit" class="primary-button">
+                Save changes
+            </button>
+
+        </form>
+
+        <a href="{% url 'posts:post_detail' post.id %}" class="cancel-link">
+            Cancel
+        </a>
+
+    </div>
+
+</div>
+
+<script>
+    const mediaInput = document.querySelector('input[type="file"]');
+    const mediaPreview = document.getElementById('media-preview');
+
+    if (mediaInput) {
+        mediaInput.addEventListener('change', function() {
+            mediaPreview.innerHTML = '';
+
+            const files = Array.from(this.files);
+
+            files.forEach(file => {
+                const previewItem = document.createElement('div');
+                previewItem.classList.add('media-preview-item');
+
+                const fileUrl = URL.createObjectURL(file);
+
+                if (file.type.startsWith('image/')) {
+                    const image = document.createElement('img');
+                    image.src = fileUrl;
+                    previewItem.appendChild(image);
+                }
+
+                if (file.type.startsWith('video/')) {
+                    const video = document.createElement('video');
+                    video.src = fileUrl;
+                    video.controls = true;
+                    previewItem.appendChild(video);
+                }
+
+                mediaPreview.appendChild(previewItem);
+            });
+        });
+    }
+
+
+    function markMediaForDeletion(mediaId) {
+        const mediaItem = document.getElementById(`media-item-${mediaId}`);
+        const deletedMediaInputs = document.getElementById('deleted-media-inputs');
+        const existingInput = document.getElementById(`deleted-media-${mediaId}`);
+
+        if (existingInput) {
+            existingInput.remove();
+            mediaItem.classList.remove('media-marked-for-deletion');
+            return;
+        }
+
+        const input = document.createElement('input');
+
+        input.type = 'hidden';
+        input.name = 'deleted_media';
+        input.value = mediaId;
+        input.id = `deleted-media-${mediaId}`;
+
+        deletedMediaInputs.appendChild(input);
+        mediaItem.classList.add('media-marked-for-deletion');
+    }
+</script>
+
+{% endblock %}

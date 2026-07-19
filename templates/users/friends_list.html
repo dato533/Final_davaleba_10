@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Friends | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="people-container">
+
+    <div class="people-title">
+        <h1>
+            {{ profile_user.first_name }}'s friends
+        </h1>
+
+        <span>{{ friends|length }} friends</span>
+    </div>
+
+    <div class="people-list">
+
+        {% for friend in friends %}
+
+            <div class="user-card">
+
+                <a href="{% url 'users:profile_detail' friend.id %}" class="user-card-information">
+
+                    {% if friend.profile.avatar %}
+                        <img src="{{ friend.profile.avatar.url }}" alt="Avatar" class="user-list-avatar">
+                    {% else %}
+                        <div class="user-list-default-avatar">
+                            {{ friend.first_name|first|upper }}
+                        </div>
+                    {% endif %}
+
+                    <div>
+                        <h3>{{ friend.first_name }} {{ friend.last_name }}</h3>
+                        <p>{{ friend.email }}</p>
+                    </div>
+
+                </a>
+
+                <a href="{% url 'users:profile_detail' friend.id %}" class="secondary-button">
+                    View profile
+                </a>
+
+            </div>
+
+        {% empty %}
+
+            <div class="empty-card">
+                <h2>No friends yet</h2>
+                <p>This user has not added any friends yet.</p>
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+{% endblock %}

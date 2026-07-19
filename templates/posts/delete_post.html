@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Delete Post | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="auth-container">
+
+    <div class="auth-card">
+
+        <h1>Delete post</h1>
+
+        <p class="danger-description">
+            Are you sure you want to permanently delete this post?
+        </p>
+
+        {% if post.text %}
+            <div class="post-delete-preview">
+                {{ post.text|truncatechars:150 }}
+            </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+
+            <button type="submit" class="danger-submit-button">
+                Delete post
+            </button>
+
+        </form>
+
+        <a href="{% url 'posts:post_detail' post.id %}" class="cancel-link">
+            Cancel
+        </a>
+
+    </div>
+
+</div>
+
+{% endblock %}

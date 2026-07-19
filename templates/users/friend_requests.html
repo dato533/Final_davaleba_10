@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Friend Requests | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="people-container">
+
+    <h1>Friend requests</h1>
+
+    <div class="people-list">
+
+        {% for friend_request in requests %}
+
+            <div class="user-card">
+
+                <a href="{% url 'users:profile_detail' friend_request.sender.id %}" class="user-card-information">
+
+                    {% if friend_request.sender.profile.avatar %}
+                        <img src="{{ friend_request.sender.profile.avatar.url }}" alt="Avatar" class="user-list-avatar">
+                    {% else %}
+                        <div class="user-list-default-avatar">
+                            {{ friend_request.sender.first_name|first|upper }}
+                        </div>
+                    {% endif %}
+
+                    <div>
+                        <h3>
+                            {{ friend_request.sender.first_name }}
+                            {{ friend_request.sender.last_name }}
+                        </h3>
+
+                        <p>{{ friend_request.created_at|date:"F d, Y H:i" }}</p>
+                    </div>
+
+                </a>
+
+                <div class="friend-request-actions">
+
+                    <form method="post" action="{% url 'users:accept_friend_request' friend_request.id %}">
+                        {% csrf_token %}
+
+                        <button type="submit" class="primary-small-button">
+                            Accept
+                        </button>
+                    </form>
+
+                    <form method="post" action="{% url 'users:decline_friend_request' friend_request.id %}">
+                        {% csrf_token %}
+
+                        <button type="submit" class="secondary-action-button">
+                            Decline
+                        </button>
+                    </form>
+
+                </div>
+
+            </div>
+
+        {% empty %}
+
+            <div class="empty-card">
+                <h2>No friend requests</h2>
+                <p>You do not have any pending friend requests.</p>
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Search Users | ConnectHub
+{% endblock %}
+
+{% block content %}
+
+<div class="people-container">
+
+    <div class="people-header">
+
+        <h1>Find people</h1>
+
+        <form method="get" class="user-search-form">
+            <input
+                type="text"
+                name="q"
+                value="{{ query }}"
+                class="form-control"
+                placeholder="Search by name or email"
+            >
+
+            <button type="submit" class="primary-small-button">
+                Search
+            </button>
+        </form>
+
+    </div>
+
+    {% for user in users %}
+
+        <div class="user-card">
+
+            <a href="{% url 'users:profile_detail' user.id %}" class="user-card-information">
+
+                {% if user.profile.avatar %}
+                    <img src="{{ user.profile.avatar.url }}" alt="Avatar" class="user-list-avatar">
+                {% else %}
+                    <div class="user-list-default-avatar">
+                        {{ user.first_name|first|upper }}
+                    </div>
+                {% endif %}
+
+                <div>
+                    <h3>{{ user.first_name }} {{ user.last_name }}</h3>
+                    <p>{{ user.email }}</p>
+                </div>
+
+            </a>
+
+            <a href="{% url 'users:profile_detail' user.id %}" class="secondary-button">
+                View profile
+            </a>
+
+        </div>
+
+    {% empty %}
+
+        {% if query %}
+            <div class="empty-card">
+                <h2>No users found</h2>
+                <p>Try another name or email.</p>
+            </div>
+        {% endif %}
+
+    {% endfor %}
+
+</div>
+
+{% endblock %}
