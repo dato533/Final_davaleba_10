@@ -41,6 +41,37 @@ def save_post_media(post, media_files):
         print('FILE EXISTS:', os.path.exists(media.file.path))
 
 
+import logging
+import os
+
+from django.conf import settings
+
+from .models import PostMedia
+
+
+logger = logging.getLogger(__name__)
+
+
+def save_post_media(post, media_files):
+    logger.warning('MEDIA_ROOT: %s', settings.MEDIA_ROOT)
+
+    for media_file in media_files:
+        if media_file.content_type.startswith('image/'):
+            media_type = 'image'
+        else:
+            media_type = 'video'
+
+        media = PostMedia.objects.create(
+            post=post,
+            file=media_file,
+            media_type=media_type
+        )
+
+        logger.warning('FILE NAME: %s', media.file.name)
+        logger.warning('FILE PATH: %s', media.file.path)
+        logger.warning('FILE EXISTS: %s', os.path.exists(media.file.path))
+
+
 @login_required
 def feed(request):
     feed_type = request.GET.get('type', 'friends')
