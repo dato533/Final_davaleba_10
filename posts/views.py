@@ -7,15 +7,38 @@ from users.models import Notification
 from django.urls import reverse
 from django.db.models import Q
 
+import os
+from django.conf import settings
+
+
+# def save_post_media(post, media_files):
+#     for media_file in media_files:
+#         if media_file.content_type.startswith('image/'):
+#             media_type = 'image'
+#         else:
+#             media_type = 'video'
+
+#         PostMedia.objects.create(post=post, file=media_file, media_type=media_type)
+
 
 def save_post_media(post, media_files):
+    print('MEDIA_ROOT:', settings.MEDIA_ROOT)
+
     for media_file in media_files:
         if media_file.content_type.startswith('image/'):
             media_type = 'image'
         else:
             media_type = 'video'
 
-        PostMedia.objects.create(post=post, file=media_file, media_type=media_type)
+        media = PostMedia.objects.create(
+            post=post,
+            file=media_file,
+            media_type=media_type
+        )
+
+        print('FILE NAME:', media.file.name)
+        print('FILE PATH:', media.file.path)
+        print('FILE EXISTS:', os.path.exists(media.file.path))
 
 
 @login_required
