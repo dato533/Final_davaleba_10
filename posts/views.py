@@ -1,74 +1,23 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect, render
-from .forms import PostForm, CommentForm, RepostForm
-from .models import Post, PostMedia, Comment, Like
-from users.models import Notification
-from django.urls import reverse
 from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
-import os
-from django.conf import settings
-
-
-# def save_post_media(post, media_files):
-#     for media_file in media_files:
-#         if media_file.content_type.startswith('image/'):
-#             media_type = 'image'
-#         else:
-#             media_type = 'video'
-
-#         PostMedia.objects.create(post=post, file=media_file, media_type=media_type)
-
-
-# def save_post_media(post, media_files):
-#     print('MEDIA_ROOT:', settings.MEDIA_ROOT)
-
-#     for media_file in media_files:
-#         if media_file.content_type.startswith('image/'):
-#             media_type = 'image'
-#         else:
-#             media_type = 'video'
-
-#         media = PostMedia.objects.create(
-#             post=post,
-#             file=media_file,
-#             media_type=media_type
-#         )
-
-#         print('FILE NAME:', media.file.name)
-#         print('FILE PATH:', media.file.path)
-#         print('FILE EXISTS:', os.path.exists(media.file.path))
-
-
-import logging
-import os
-
-from django.conf import settings
-
-from .models import PostMedia
-
-
-logger = logging.getLogger(__name__)
+from users.models import Notification
+from .forms import CommentForm, PostForm, RepostForm
+from .models import Comment, Like, Post, PostMedia
 
 
 def save_post_media(post, media_files):
-    raise RuntimeError('SAVE_POST_MEDIA_DEBUG')
-
     for media_file in media_files:
         media_type = 'image' if media_file.content_type.startswith('image/') else 'video'
 
-        media = PostMedia.objects.create(
+        PostMedia.objects.create(
             post=post,
             file=media_file,
             media_type=media_type
         )
-
-        print('SAVED NAME:', media.file.name, flush=True)
-        print('SAVED PATH:', media.file.path, flush=True)
-        print('FILE EXISTS:', os.path.exists(media.file.path), flush=True)
-        print('MEDIA DIR EXISTS:', os.path.exists(settings.MEDIA_ROOT), flush=True)
-        print('MEDIA ROOT CONTENTS:', os.listdir(settings.MEDIA_ROOT), flush=True)
 
 
 @login_required
@@ -124,6 +73,8 @@ def feed(request):
 @login_required
 def create_post(request):
     if request.method == 'POST':
+        raise RuntimeError('CREATE_POST_DEBUG')
+
         form = PostForm(request.POST, request.FILES)
 
         if form.is_valid():
@@ -463,5 +414,3 @@ def repost_post(request, post_id):
         'form': form,
         'original_post': original_post
     })
-
-
