@@ -73,7 +73,6 @@ def feed(request):
 @login_required
 def create_post(request):
     if request.method == 'POST':
-        raise RuntimeError('CREATE_POST_DEBUG')
 
         form = PostForm(request.POST, request.FILES)
 
