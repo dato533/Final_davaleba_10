@@ -53,13 +53,10 @@ logger = logging.getLogger(__name__)
 
 
 def save_post_media(post, media_files):
-    logger.warning('MEDIA_ROOT: %s', settings.MEDIA_ROOT)
+    print('RAILWAY MEDIA_ROOT:', settings.MEDIA_ROOT, flush=True)
 
     for media_file in media_files:
-        if media_file.content_type.startswith('image/'):
-            media_type = 'image'
-        else:
-            media_type = 'video'
+        media_type = 'image' if media_file.content_type.startswith('image/') else 'video'
 
         media = PostMedia.objects.create(
             post=post,
@@ -67,9 +64,11 @@ def save_post_media(post, media_files):
             media_type=media_type
         )
 
-        logger.warning('FILE NAME: %s', media.file.name)
-        logger.warning('FILE PATH: %s', media.file.path)
-        logger.warning('FILE EXISTS: %s', os.path.exists(media.file.path))
+        print('SAVED NAME:', media.file.name, flush=True)
+        print('SAVED PATH:', media.file.path, flush=True)
+        print('FILE EXISTS:', os.path.exists(media.file.path), flush=True)
+        print('MEDIA DIR EXISTS:', os.path.exists(settings.MEDIA_ROOT), flush=True)
+        print('MEDIA ROOT CONTENTS:', os.listdir(settings.MEDIA_ROOT), flush=True)
 
 
 @login_required
