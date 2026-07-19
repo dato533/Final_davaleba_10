@@ -49,6 +49,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 INSTALLED_APPS = [
     'daphne',
+    'anymail',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -174,18 +175,18 @@ LOGIN_REDIRECT_URL = 'posts:feed'
 LOGOUT_REDIRECT_URL = 'users:login'
 
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = 'anymail.backends.brevo.EmailBackend'
 
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+ANYMAIL = {
+    'BREVO_API_KEY': os.getenv('BREVO_API_KEY'),
+}
 
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.getenv(
+    'DEFAULT_FROM_EMAIL',
+    'ConnectHub <dnikolaishvili60@gmail.com>'
+)
 
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
-
-EMAIL_TIMEOUT = 30
+EMAIL_TIMEOUT = 10
 
 
 REDIS_URL = os.getenv('REDIS_URL')
