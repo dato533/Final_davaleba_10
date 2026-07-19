@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 
 
 def save_post_media(post, media_files):
-    print('RAILWAY MEDIA_ROOT:', settings.MEDIA_ROOT, flush=True)
+    raise RuntimeError('SAVE_POST_MEDIA_DEBUG')
 
     for media_file in media_files:
         media_type = 'image' if media_file.content_type.startswith('image/') else 'video'
